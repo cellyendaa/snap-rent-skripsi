@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* react-datepicker: tampilan kalender & waktu di dark theme */
+.react-datepicker--dark-aware.react-datepicker {
+  font-family: inherit;
+}
+.dark .react-datepicker--dark-aware {
+  background-color: #1f2937;
+  border-color: #4b5563;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__header {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__current-month,
+.dark .react-datepicker--dark-aware .react-datepicker__day-name,
+.dark .react-datepicker--dark-aware .react-datepicker__time-list-item {
+  color: #e5e7eb;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__day {
+  color: #e5e7eb;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__day:hover,
+.dark .react-datepicker--dark-aware .react-datepicker__day--keyboard-selected {
+  background-color: #4b5563;
+  color: #fff;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__day--disabled {
+  color: #6b7280;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__time-list-item:hover {
+  background-color: #4b5563;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__time-container .react-datepicker__time-box {
+  background-color: #1f2937;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__navigation-icon::before {
+  border-color: #9ca3af;
+}
+.dark .react-datepicker--dark-aware .react-datepicker__triangle {
+  border-bottom-color: #1f2937;
+}
+.dark .react-datepicker--dark-aware.react-datepicker--time-only .react-datepicker__triangle {
+  border-bottom-color: #1f2937;
+}
+
+/* Kalender datepicker di-render via portal — pastikan di atas elemen lain */
+.react-datepicker-popper-z {
+  z-index: 9999 !important;
+}

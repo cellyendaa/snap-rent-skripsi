@@ -1,0 +1,4 @@
+user_phone,product_id,product_image,product_name,price,slug,added_at
+081234567890,prod-001,https://drive.google.com/uc?export=view&id=ABC123,Canon EOS R5,250000,canon-eos-r5,2025-02-20T10:30:00.000Z
+081234567890,prod-002,,Sony A7 IV,300000,sony-a7-iv,2025-02-20T11:00:00.000Z
+089876543210,prod-001,https://drive.google.com/uc?export=view&id=ABC123,Canon EOS R5,250000,canon-eos-r5,2025-02-20T09:15:00.000Z
