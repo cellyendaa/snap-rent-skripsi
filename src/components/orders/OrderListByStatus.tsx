@@ -44,7 +44,17 @@ function formatOrderDateTime(dateStr: string, timeStr: string): string {
 
 export type OrderVariant = 'belum_diambil' | 'rental_berjalan' | 'selesai' | 'dibatalkan';
 
-const locationData = {
+const locationData: Record<
+  string,
+  {
+    name: string;
+    address: string;
+    phone: string;
+    hours: string;
+    whatsapp: string;
+    mapsUrl: string;
+  }
+> = {
   jakarta: {
     name: 'SnapRent Jakarta',
     address: 'Jl. Sisingamangaraja, RT.2/RW.1, Selong, Kec. Kby. Baru, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12110',
