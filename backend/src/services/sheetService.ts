@@ -12,6 +12,7 @@ const IMAGES_SHEET_TITLE = process.env.IMAGES_SHEET_TITLE || 'Images';
 const DEFAULT_PACKAGES_SHEET_TITLE = process.env.DEFAULT_PACKAGES_SHEET_TITLE || 'Default_packages';
 const PACKAGE_COMPONENTS_SHEET_TITLE = process.env.PACKAGE_COMPONENTS_SHEET_TITLE || 'Package_components';
 const CART_SHEET_TITLE = process.env.CART_SHEET_TITLE || 'Cart';
+const CAMERA_ADVANTAGES_SHEET_TITLE = process.env.CAMERA_ADVANTAGES_SHEET_TITLE || 'Camera_advantages';
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const GOOGLE_CLIENT_EMAIL = process.env.GOOGLE_CLIENT_EMAIL;
@@ -1032,3 +1033,70 @@ export async function addProductRowsToSheet(rows: ProductRowData[]): Promise<voi
     });
   }
 }
+
+// ----- Camera Advantages -----
+export interface CameraAdvantageRow {
+  id: string;
+  name: string;
+  advantage_key: string;
+  keunggulan_1: string;
+  keunggulan_2: string;
+  keunggulan_3: string;
+  keunggulan_4: string;
+  cocokUntuk_1: string;
+  cocokUntuk_2: string;
+  cocokUntuk_3: string;
+  cocokUntuk_4: string;
+  cocokUntuk_5: string;
+  tags: string;
+}
+ 
+const ADVANTAGES_CACHE_TTL_MS =
+  (typeof process.env.SHEETS_CACHE_TTL_MINUTES !== 'undefined'
+    ? Math.max(1, Number(process.env.SHEETS_CACHE_TTL_MINUTES) || 5)
+    : 5) *
+  60 *
+  1000;
+ 
+let advantagesCache: { data: CameraAdvantageRow[]; at: number } | null = null;
+ 
+/**
+ * Ambil semua baris dari tab Camera_advantages di Google Sheet.
+ * Di-cache selama SHEETS_CACHE_TTL_MINUTES (default 5 menit).
+ */
+export async function getAdvantagesFromSheet(): Promise<CameraAdvantageRow[]> {
+  const now = Date.now();
+  if (advantagesCache && now - advantagesCache.at < ADVANTAGES_CACHE_TTL_MS) {
+    return advantagesCache.data;
+  }
+ 
+  const sheet = await getSheetByTitle(CAMERA_ADVANTAGES_SHEET_TITLE);
+  const rows = await sheet.getRows();
+ 
+  const data: CameraAdvantageRow[] = rows
+    .map((row) => ({
+      id:           String(row.get('id')           ?? '').trim(),
+      name:         String(row.get('name')         ?? '').trim(),
+      advantage_key:String(row.get('advantage_key')?? '').trim(),
+      keunggulan_1: String(row.get('keunggulan_1') ?? '').trim(),
+      keunggulan_2: String(row.get('keunggulan_2') ?? '').trim(),
+      keunggulan_3: String(row.get('keunggulan_3') ?? '').trim(),
+      keunggulan_4: String(row.get('keunggulan_4') ?? '').trim(),
+      cocokUntuk_1: String(row.get('cocokUntuk_1') ?? '').trim(),
+      cocokUntuk_2: String(row.get('cocokUntuk_2') ?? '').trim(),
+      cocokUntuk_3: String(row.get('cocokUntuk_3') ?? '').trim(),
+      cocokUntuk_4: String(row.get('cocokUntuk_4') ?? '').trim(),
+      cocokUntuk_5: String(row.get('cocokUntuk_5') ?? '').trim(),
+      tags:         String(row.get('tags')         ?? '').trim(),
+    }))
+    .filter((r) => r.id); // skip baris kosong
+ 
+  advantagesCache = { data, at: Date.now() };
+  return data;
+}
+ 
+/** Invalidate cache advantages (panggil setelah update Sheet secara manual). */
+export function invalidateAdvantagesCache(): void {
+  advantagesCache = null;
+}
+ 

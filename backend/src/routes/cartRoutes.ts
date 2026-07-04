@@ -1,121 +1,147 @@
 import { Router, Request, Response } from 'express';
 import { getCartByUser, addCartItem, removeCartItem } from '../services/sheetService.js';
-import type {
-  GetCartQuery,
-  GetCartSuccessResponse,
-  PostCartRequestBody,
-  PostCartSuccessResponse,
-  DeleteCartRequestBody,
-  CartErrorResponse,
-} from '../types.js';
+import type { OrderErrorResponse } from '../types.js';
 
 const router = Router();
 
+export interface CartItemDto {
+  product_id: string;
+  product_image: string;
+  product_name: string;
+  price: number;
+  slug: string;
+  added_at: string;
+}
+
+export interface GetCartSuccessResponse {
+  success: true;
+  items: CartItemDto[];
+}
+
+export interface AddToCartRequestBody {
+  phoneNumber: string;
+  product_id: string;
+  product_image: string;
+  product_name?: string;
+  price?: number;
+  slug?: string;
+}
+
+export interface AddToCartSuccessResponse {
+  success: true;
+  message: string;
+}
+
+export interface RemoveFromCartRequestBody {
+  phoneNumber: string;
+  product_id: string;
+}
+
+// GET /cart?phoneNumber=xxx
 router.get('/cart', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { phoneNumber } = req.query as unknown as GetCartQuery;
+    const phoneNumber = req.query.phoneNumber;
     if (!phoneNumber || typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
-      const err: CartErrorResponse = { success: false, message: 'phoneNumber query wajib diisi' };
+      const err: OrderErrorResponse = { success: false, message: 'phoneNumber query wajib diisi' };
       res.status(400).json(err);
       return;
     }
 
-    const rows = await getCartByUser(phoneNumber.trim());
-    const body: GetCartSuccessResponse = {
-      success: true,
-      items: rows.map((r) => ({
-        product_id: r.product_id,
-        product_image: r.product_image,
-        product_name: r.product_name,
-        price: r.price,
-        slug: r.slug,
-        added_at: r.added_at,
-      })),
-    };
-    res.status(200).json(body);
+    const items = await getCartByUser(phoneNumber.trim());
+    const payload: CartItemDto[] = items.map((i) => ({
+      product_id: i.product_id,
+      product_image: i.product_image,
+      product_name: i.product_name,
+      price: i.price,
+      slug: i.slug,
+      added_at: i.added_at,
+    }));
+
+    const successBody: GetCartSuccessResponse = { success: true, items: payload };
+    res.status(200).json(successBody);
   } catch (err) {
-    console.error('GET /cart error:', err);
-    const body: CartErrorResponse = {
+    console.error('Get cart error:', err);
+    const errBody: OrderErrorResponse = {
       success: false,
-      message: err instanceof Error ? err.message : 'Gagal mengambil keranjang',
+      message: err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil keranjang',
     };
-    res.status(500).json(body);
+    res.status(500).json(errBody);
   }
 });
 
+// POST /cart
 router.post('/cart', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { phoneNumber, product_id, product_image, product_name, price, slug } = req.body as Partial<PostCartRequestBody>;
+    const body = req.body as Partial<AddToCartRequestBody>;
+    const { phoneNumber, product_id, product_image, product_name, price, slug } = body;
 
     if (!phoneNumber || typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
-      const err: CartErrorResponse = { success: false, message: 'phoneNumber wajib diisi' };
+      const err: OrderErrorResponse = { success: false, message: 'phoneNumber wajib diisi' };
       res.status(400).json(err);
       return;
     }
     if (!product_id || typeof product_id !== 'string' || !product_id.trim()) {
-      const err: CartErrorResponse = { success: false, message: 'product_id wajib diisi' };
+      const err: OrderErrorResponse = { success: false, message: 'product_id wajib diisi' };
       res.status(400).json(err);
       return;
     }
 
-    const image = typeof product_image === 'string' ? product_image : '';
-    const name = typeof product_name === 'string' && product_name.trim() ? product_name.trim() : product_id;
-    const priceNum = typeof price === 'number' ? price : Number(price) || 0;
-    const slugStr = typeof slug === 'string' ? slug.trim() : '';
+    await addCartItem(
+      phoneNumber.trim(),
+      product_id.trim(),
+      product_image ?? '',
+      product_name ?? '',
+      typeof price === 'number' ? price : Number(price) || 0,
+      slug ?? ''
+    );
 
-    const rows = await getCartByUser(phoneNumber.trim());
-    if (rows.some((r) => r.product_id === product_id.trim())) {
-      const body: PostCartSuccessResponse = { success: true, message: 'Produk sudah ada di keranjang' };
-      res.status(200).json(body);
-      return;
-    }
-
-    await addCartItem(phoneNumber.trim(), product_id.trim(), image, name, priceNum, slugStr);
-
-    const body: PostCartSuccessResponse = { success: true, message: 'Ditambah ke keranjang' };
-    res.status(201).json(body);
-  } catch (err) {
-    console.error('POST /cart error:', err);
-    const body: CartErrorResponse = {
-      success: false,
-      message: err instanceof Error ? err.message : 'Gagal menambah ke keranjang',
+    const successBody: AddToCartSuccessResponse = {
+      success: true,
+      message: 'Produk berhasil ditambahkan ke keranjang',
     };
-    res.status(500).json(body);
+    res.status(201).json(successBody);
+  } catch (err) {
+    console.error('Add to cart error:', err);
+    const errBody: OrderErrorResponse = {
+      success: false,
+      message: err instanceof Error ? err.message : 'Terjadi kesalahan saat menambah ke keranjang',
+    };
+    res.status(500).json(errBody);
   }
 });
 
+// DELETE /cart (body: { phoneNumber, product_id })
 router.delete('/cart', async (req: Request, res: Response): Promise<void> => {
   try {
-    const phoneNumber = (req.body?.phoneNumber ?? req.query?.phoneNumber) as string | undefined;
-    const product_id = (req.body?.product_id ?? req.query?.product_id) as string | undefined;
+    const body = req.body as Partial<RemoveFromCartRequestBody>;
+    const { phoneNumber, product_id } = body;
 
     if (!phoneNumber || typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
-      const err: CartErrorResponse = { success: false, message: 'phoneNumber wajib diisi' };
+      const err: OrderErrorResponse = { success: false, message: 'phoneNumber wajib diisi' };
       res.status(400).json(err);
       return;
     }
     if (!product_id || typeof product_id !== 'string' || !product_id.trim()) {
-      const err: CartErrorResponse = { success: false, message: 'product_id wajib diisi' };
+      const err: OrderErrorResponse = { success: false, message: 'product_id wajib diisi' };
       res.status(400).json(err);
       return;
     }
 
     const removed = await removeCartItem(phoneNumber.trim(), product_id.trim());
-
     if (!removed) {
-      const err: CartErrorResponse = { success: false, message: 'Item tidak ditemukan di keranjang' };
+      const err: OrderErrorResponse = { success: false, message: 'Item keranjang tidak ditemukan' };
       res.status(404).json(err);
       return;
     }
 
-    res.status(200).json({ success: true, message: 'Dihapus dari keranjang' });
+    res.status(200).json({ success: true, message: 'Produk berhasil dihapus dari keranjang' });
   } catch (err) {
-    console.error('DELETE /cart error:', err);
-    const body: CartErrorResponse = {
+    console.error('Remove from cart error:', err);
+    const errBody: OrderErrorResponse = {
       success: false,
-      message: err instanceof Error ? err.message : 'Gagal menghapus dari keranjang',
+      message: err instanceof Error ? err.message : 'Terjadi kesalahan saat menghapus dari keranjang',
     };
-    res.status(500).json(body);
+    res.status(500).json(errBody);
   }
 });
 

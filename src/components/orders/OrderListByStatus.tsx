@@ -47,21 +47,11 @@ export type OrderVariant = 'belum_diambil' | 'rental_berjalan' | 'selesai' | 'di
 const locationData = {
   jakarta: {
     name: 'SnapRent Jakarta',
-    address: 'Jl. Tebet Raya No.45A, Tebet, Jakarta Selatan, DKI Jakarta 12820, Indonesia',
-    website: 'www.facebook.com/pondoklensa',
-    phone: '082130003366',
+    address: 'Jl. Sisingamangaraja, RT.2/RW.1, Selong, Kec. Kby. Baru, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12110',
+    phone: '085559532093',
     hours: 'Jam Buka: 24 hours',
-    whatsapp: '6282130003366',
-    mapsUrl: 'https://www.google.com/maps/place/Pondok+Lensa+Jakarta/@-6.2287111,106.8544389,17z/data=!3m1!4b1!4m6!3m5!1s0x2e69f3f7380cc1d5:0xdcfc5a97e4aec34e!8m2!3d-6.2287111!4d106.8544389!16s%2Fg%2F11fjyvgjm2?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D',
-  },
-  surabaya: {
-    name: 'SnapRent Surabaya',
-    address: 'Jl. Raya Darmo Permai I No.58, Pradahkalikendal, Kec. Dukuhpakis, Surabaya, Jawa Timur 60226',
-    website: 'www.facebook.com/pondoklensa',
-    phone: '082140007010',
-    hours: 'Jam Buka: 07:00 - 23:00 local time',
-    whatsapp: '6282140007010',
-    mapsUrl: 'https://www.google.com/maps/place/Pondok+Lensa+Surabaya/@-7.2821261,112.6957925,15z/data=!4m6!3m5!1s0x2dd7fd47ca889c77:0x8dd97a15b57b52f9!8m2!3d-7.2821261!4d112.6957925!16s%2Fg%2F11vt5lyjlf?entry=tts',
+    whatsapp: '6285813247562',
+    mapsUrl: 'https://www.google.com/maps/place/Universitas+Al+Azhar+Indonesia/@-6.2347822,106.7990055,17z/data=!4m14!1m7!3m6!1s0x2e69f141731e7063:0x5c76e93c1857863b!2sUniversitas+Al+Azhar+Indonesia!8m2!3d-6.2347822!4d106.7990055!16s%2Fg%2F121v7l7q!3m5!1s0x2e69f141731e7063:0x5c76e93c1857863b!8m2!3d-6.2347822!4d106.7990055!16s%2Fg%2F121v7l7q?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D',
   },
 };
 
