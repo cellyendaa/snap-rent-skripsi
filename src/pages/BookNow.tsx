@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { ArrowLeft, Info, Menu, X, CreditCard, Building2, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Info, Menu, X, Wallet } from 'lucide-react';
 import { formatCurrency, getProductImageUrl } from '../utils/products';
 import type { Product } from '../types/product';
 import { useAppDispatch } from '../hooks/useAppDispatch';
@@ -95,7 +95,7 @@ const BookNow = () => {
   const [returnDate, setReturnDate] = useState(getDefaultReturnDate(currentDateTime.date, initialPickupTime));
   const [returnTime, setReturnTime] = useState('09:00');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
-  const [showBankList, setShowBankList] = useState(false);
+  // const [showBankList, setShowBankList] = useState(false);
   const [showPriceChart, setShowPriceChart] = useState(false);
   const [showAvailabilityInfo, setShowAvailabilityInfo] = useState(false);
   const [showPricingInfo, setShowPricingInfo] = useState(false);
@@ -106,12 +106,12 @@ const BookNow = () => {
   const pricingInfoModalRef = useRef<HTMLDivElement>(null);
 
   // Bank list for Transfer Bank
-  const banks = [
-    { id: 'bca', name: 'BCA' },
-    { id: 'bri', name: 'BRI' },
-    { id: 'bni', name: 'BNI' },
-    { id: 'mandiri', name: 'Mandiri' },
-  ];
+  // const banks = [
+  //   { id: 'bca', name: 'BCA' },
+  //   { id: 'bri', name: 'BRI' },
+  //   { id: 'bni', name: 'BNI' },
+  //   { id: 'mandiri', name: 'Mandiri' },
+  // ];
 
   // Calculate days (minimum 1 day)
   const rentalDays = useMemo(() => {
@@ -799,10 +799,10 @@ const BookNow = () => {
                           product,
                           pickupDate,
                           pickupTime,
-                          pickupLocation: PICKUP_LOCATION as 'jakarta' | 'surabaya',
+                          pickupLocation: PICKUP_LOCATION as 'jakarta',
                           returnDate,
                           returnTime,
-                          returnLocation: RETURN_LOCATION as 'jakarta' | 'surabaya',
+                          returnLocation: RETURN_LOCATION as 'jakarta',
                           rentalDays,
                           totalPrice: priceBreakdown.total,
                           status: 'belum_diambil',
@@ -823,10 +823,10 @@ const BookNow = () => {
                       product,
                       pickupDate,
                       pickupTime,
-                      pickupLocation: PICKUP_LOCATION as 'jakarta' | 'surabaya',
+                      pickupLocation: PICKUP_LOCATION as 'jakarta',
                       returnDate,
                       returnTime,
-                      returnLocation: RETURN_LOCATION as 'jakarta' | 'surabaya',
+                      returnLocation: RETURN_LOCATION as 'jakarta',
                       rentalDays,
                       totalPrice: priceBreakdown.total,
                       status: 'belum_diambil',

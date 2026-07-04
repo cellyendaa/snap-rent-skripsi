@@ -1,43 +1,43 @@
-import axios from 'axios';
-import type { OrderItem } from '../store/slices/orderSlice';
-import type { Product } from '../types/product';
+import axios from "axios";
+import type { OrderItem } from "../store/slices/orderSlice";
+import type { Product } from "../types/product";
 
 const api = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: "/api",
+  headers: { "Content-Type": "application/json" },
 });
 
-function loc(v: string): 'jakarta' | 'surabaya' {
-  return String(v).toLowerCase().includes('surabaya') ? 'surabaya' : 'jakarta';
+function loc(name: string): "jakarta" {
+  return name === "jakarta" ? "jakarta" : "jakarta"; // Default to 'jakarta' if not recognized
 }
 
 export function mapApiOrderToOrderItem(o: OrderFromApi): OrderItem {
   const prod = o.product;
-  const imageList = prod?.images?.length ? prod.images : (prod?.image ? [prod.image] : []);
+  const imageList = prod?.images?.length ? prod.images : prod?.image ? [prod.image] : [];
   const product: Product = {
     id: o.product_id,
     name: prod?.name ?? o.product_name,
     title: prod?.title ?? o.product_name,
-    model: '',
-    type: '',
-    status: '',
+    model: "",
+    type: "",
+    status: "",
     price: prod?.price ?? o.total_price / Math.max(1, o.rental_days),
-    slug: prod?.slug ?? '',
+    slug: prod?.slug ?? "",
     description: null,
-    category_id: '',
-    manufacturer_id: '',
+    category_id: "",
+    manufacturer_id: "",
     parent_id: null,
-    created_at: '',
-    updated_at: '',
+    created_at: "",
+    updated_at: "",
     category: null,
     manufacturer: null,
     images: imageList.map((image, order) => ({
-      id: '',
+      id: "",
       image,
       product_id: o.product_id,
       order,
-      created_at: '',
-      updated_at: '',
+      created_at: "",
+      updated_at: "",
     })),
   };
   return {
@@ -56,7 +56,7 @@ export function mapApiOrderToOrderItem(o: OrderFromApi): OrderItem {
   };
 }
 
-export type OrderStatus = 'belum_diambil' | 'rental_berjalan' | 'selesai' | 'dibatalkan';
+export type OrderStatus = "belum_diambil" | "rental_berjalan" | "selesai" | "dibatalkan";
 
 export interface CreateOrderPayload {
   user: { name: string; phoneNumber: string };
@@ -89,13 +89,13 @@ export interface OrderError {
 
 export async function createOrder(payload: CreateOrderPayload): Promise<CreateOrderSuccess | OrderError> {
   try {
-    const { data } = await api.post<CreateOrderSuccess | OrderError>('/orders', payload);
+    const { data } = await api.post<CreateOrderSuccess | OrderError>("/orders", payload);
     return data;
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
+    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === "object" && "message" in err.response.data) {
       return { success: false, message: (err.response.data as OrderError).message };
     }
-    return { success: false, message: err instanceof Error ? err.message : 'Gagal membuat order' };
+    return { success: false, message: err instanceof Error ? err.message : "Gagal membuat order" };
   }
 }
 
@@ -134,15 +134,15 @@ export interface GetOrdersSuccess {
 
 export async function getOrders(phoneNumber: string): Promise<GetOrdersSuccess | OrderError> {
   try {
-    const { data } = await api.get<GetOrdersSuccess | OrderError>('/orders', {
+    const { data } = await api.get<GetOrdersSuccess | OrderError>("/orders", {
       params: { phoneNumber: phoneNumber.trim() },
     });
     return data;
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
+    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === "object" && "message" in err.response.data) {
       return { success: false, message: (err.response.data as OrderError).message };
     }
-    return { success: false, message: err instanceof Error ? err.message : 'Gagal mengambil daftar order' };
+    return { success: false, message: err instanceof Error ? err.message : "Gagal mengambil daftar order" };
   }
 }
 
@@ -151,9 +151,9 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
     await api.patch(`/orders/${orderId}`, { status });
     return { success: true };
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
+    if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === "object" && "message" in err.response.data) {
       return { success: false, message: (err.response.data as OrderError).message };
     }
-    return { success: false, message: err instanceof Error ? err.message : 'Gagal mengubah status' };
+    return { success: false, message: err instanceof Error ? err.message : "Gagal mengubah status" };
   }
 }

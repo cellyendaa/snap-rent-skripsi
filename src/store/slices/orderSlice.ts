@@ -6,10 +6,10 @@ export interface OrderItem {
   product: Product;
   pickupDate: string;
   pickupTime: string;
-  pickupLocation: 'jakarta' | 'surabaya';
+  pickupLocation: 'jakarta';
   returnDate: string;
   returnTime: string;
-  returnLocation: 'jakarta' | 'surabaya';
+  returnLocation: 'jakarta';
   rentalDays: number;
   totalPrice: number;
   status: 'belum_diambil' | 'rental_berjalan' | 'selesai' | 'dibatalkan';
