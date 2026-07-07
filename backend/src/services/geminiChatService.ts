@@ -28,6 +28,15 @@ Aturan PENTING Anti-Halusinasi:
 
 Gaya bicara: Ramah seperti teman, boleh pakai emoji secukupnya.`;
 
+// ==================== INFO KEBIJAKAN SEWA (Static, tidak berubah-ubah) ====================
+const RENTAL_POLICY_INFO = `
+Informasi Kebijakan Sewa SnapRent:
+- Syarat sewa: cukup menunjukkan KTP asli (tidak perlu jaminan lain).
+- Pembayaran dilakukan LANGSUNG di toko saat pengambilan barang (bukan lewat payment gateway online).
+- Untuk detail pembayaran, metode, atau pertanyaan teknis lain terkait transaksi, karyawan toko akan menjelaskan langsung saat proses pembayaran berlangsung.
+- Jika user bertanya hal di luar cakupan di atas (misalnya nominal DP, cicilan, atau kebijakan yang tidak disebutkan di sini), arahkan user untuk menanyakannya langsung ke karyawan saat datang ke toko / saat pembayaran, JANGAN mengarang jawaban.
+`;
+
 const aiTools: FunctionDeclaration[] = [
   {
     name: 'search_products',
@@ -135,9 +144,9 @@ console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
       const history: Content[] = messagesToContents(limitedMessages);
       const newUserContent: Content = { role: 'user', parts: [{ text: newUserMessage }] };
 
-      // ==================== RAG TAHAP 1 (TIDAK DIUBAH) ====================
+      // ==================== RAG TAHAP 1 (ditambah policy info) ====================
       const productCatalog = await getProductCatalogForAI();
-      const systemInstruction = `${SYSTEM_INSTRUCTION_BASE}\n\n${productCatalog}`;
+      const systemInstruction = `${SYSTEM_INSTRUCTION_BASE}\n\n${RENTAL_POLICY_INFO}\n\n${productCatalog}`;
 
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
