@@ -69,7 +69,7 @@ const aiTools: FunctionDeclaration[] = [
 ];
 
 const searchProductsTool: FunctionDeclarationsTool = { functionDeclarations: aiTools };
-const toolConfig: ToolConfig = { functionCallingConfig: { mode: FunctionCallingMode.AUTO } };
+const toolConfig: ToolConfig = { functionCallingConfig: { mode: FunctionCallingMode.ANY } };
 
 // ==================== HELPER FUNCTIONS (Sama seperti aslimu) ====================
 async function getProductCatalogForAI(): Promise<string> {
@@ -164,8 +164,9 @@ console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
         turns++;
 
         const result = await model.generateContent({ contents });
+        console.log(`🔎 [DEBUG] Turn ${turns} - Has functionCall:`, !!getFunctionCallFromResponse(result));
         const functionCall = getFunctionCallFromResponse(result);
-
+        
         if (functionCall && (functionCall.name === 'search_products' || functionCall.name === 'get_products')) {
           const args = functionCall.args as any;
           const products = await searchProducts({
