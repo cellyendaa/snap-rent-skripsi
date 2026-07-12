@@ -45,7 +45,7 @@ async function getDoc(): Promise<GoogleSpreadsheet> {
 
 async function getSheetByTitle(title: string) {
   const spreadsheet = await getDoc();
-  await spreadsheet.loadInfo();
+  // hapus baris loadInfo() di sini — sudah di-handle di dalam getDoc()
   const sheet = spreadsheet.sheetsByTitle[title];
   if (!sheet) {
     throw new Error(`Sheet "${title}" not found. Add a tab "${title}" or set the corresponding env.`);

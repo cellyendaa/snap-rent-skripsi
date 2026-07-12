@@ -1,5 +1,5 @@
 // services/geminiKeyManager.ts
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
 
 interface KeyInfo {
   key: string;
@@ -20,13 +20,20 @@ class GeminiKeyManager {
   }
 
   private loadKeys() {
-    const rawKeys = process.env.GEMINI_API_KEYS || '';
-    const keyList = rawKeys.split(',').map(k => k.trim()).filter(k => k.length > 20);
+    const rawKeys = process.env.GEMINI_API_KEYS || "";
+    const keyList = rawKeys
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 20);
 
-    if (keyList.length === 0) throw new Error('GEMINI_API_KEYS belum diisi di .env');
+    if (keyList.length === 0) throw new Error("GEMINI_API_KEYS belum diisi di .env");
 
-    this.keys = keyList.map(key => ({
-      key, lastUsed: new Date(), requestCount: 0, errorCount: 0, isBlocked: false
+    this.keys = keyList.map((key) => ({
+      key,
+      lastUsed: new Date(),
+      requestCount: 0,
+      errorCount: 0,
+      isBlocked: false,
     }));
 
     console.log(`🔑 Gemini Key Manager loaded dengan ${this.keys.length} API Key`);
@@ -45,21 +52,22 @@ class GeminiKeyManager {
         this.currentIndex = (idx + 1) % this.keys.length;
         keyInfo.lastUsed = new Date();
         keyInfo.requestCount++;
-        console.log(`🔑 [Key #${idx+1}] digunakan | Request: ${keyInfo.requestCount}`);
+        console.log(`🔑 [Key #${idx + 1}] digunakan | Request: ${keyInfo.requestCount}`);
         return keyInfo.key;
       }
     }
-    throw new Error('SEMUA_GEMINI_KEY_LIMIT');
+    throw new Error("SEMUA_GEMINI_KEY_LIMIT");
   }
 
   markError(key: string, isQuotaError: boolean = true) {
-    const keyInfo = this.keys.find(k => k.key === key);
-    if (!keyInfo) return;
+    const idx = this.keys.findIndex((k) => k.key === key);
+    if (idx < 0) return;
+    const keyInfo = this.keys[idx];
     keyInfo.errorCount++;
     if (isQuotaError) {
       keyInfo.isBlocked = true;
       keyInfo.blockedUntil = new Date(Date.now() + this.BLOCK_DURATION_MS);
-      console.log(`🚫 Key diblokir sementara (5 menit)`);
+      console.log(`🚫 Key #${idx + 1} diblokir sementara (5 menit) | errorCount: ${keyInfo.errorCount}`);
     }
   }
 }

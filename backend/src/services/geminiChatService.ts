@@ -69,9 +69,12 @@ const aiTools: FunctionDeclaration[] = [
 ];
 
 const searchProductsTool: FunctionDeclarationsTool = { functionDeclarations: aiTools };
-const toolConfig: ToolConfig = { functionCallingConfig: { mode: FunctionCallingMode.ANY } };
+/** AUTO: model boleh memanggil tool ATAU langsung jawab teks (bukan ANY yang memaksa tool terus-menerus). */
+const toolConfigAuto: ToolConfig = { functionCallingConfig: { mode: FunctionCallingMode.AUTO } };
+/** NONE: setelah tool dijalankan, paksa model jawab teks tanpa tool lagi. */
+const toolConfigNone: ToolConfig = { functionCallingConfig: { mode: FunctionCallingMode.NONE } };
 
-// ==================== HELPER FUNCTIONS (Sama seperti aslimu) ====================
+// ==================== HELPER FUNCTIONS ====================
 async function getProductCatalogForAI(): Promise<string> {
   try {
     const all = await searchProducts({});
@@ -99,7 +102,12 @@ function messagesToContents(messages: ChatMessage[]): Content[] {
 }
 
 function getTextFromResponse(result: GenerateContentResult): string {
-  return result.response.text() || '';
+  try {
+    return result.response.text() || '';
+  } catch {
+    // Response hanya berisi functionCall (tanpa text part)
+    return '';
+  }
 }
 
 function getFunctionCallFromResponse(result: GenerateContentResult): { name: string; args: object } | null {
@@ -113,7 +121,26 @@ function getFunctionCallFromResponse(result: GenerateContentResult): { name: str
   return null;
 }
 
-// ==================== MAIN FUNCTION (RAG 1 & 2 tetap sama) ====================
+function buildFallbackUserMessage(err: unknown): string {
+  const msg = (err instanceof Error ? err.message : String(err || '')).toLowerCase();
+  if (msg.includes('semua_gemini_key_limit')) {
+    return 'Semua API key Gemini sedang limit. Coba lagi dalam beberapa menit ya 🙂';
+  }
+  if (msg.includes('429') || msg.includes('quota') || msg.includes('too many requests')) {
+    return 'Kuota AI lagi penuh nih. Coba tanya lagi setelah 1–2 menit ya 🙂';
+  }
+  if (msg.includes('503') || msg.includes('high demand') || msg.includes('service unavailable')) {
+    return 'Maaf, AI lagi capek nih. Coba tanya lagi setelah 1–2 menit ya 🙂';
+  }
+  if (msg.includes('api key') || msg.includes('api_key') || msg.includes('invalid') || msg.includes('permission')) {
+    return 'Ada masalah konfigurasi API key Gemini. Cek GEMINI_API_KEYS di server ya.';
+  }
+  if (msg.includes('timeout') || msg.includes('timed out')) {
+    return 'Responsenya lama banget. Coba kirim ulang pesan kamu.';
+  }
+  return 'Maaf, lagi ada gangguan di sistem AI. Coba tanya lagi dalam 10–20 detik ya 🙂';
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
@@ -127,24 +154,23 @@ export interface ChatResponse {
 const CHAT_HISTORY_LIMIT = 4;
 const MAX_TURNS = 5;
 
-// ==================== MAIN FUNCTION DENGAN RETRY KUAT ====================
 export async function sendChat(messages: ChatMessage[], newUserMessage: string): Promise<ChatResponse> {
-  const MAX_RETRIES = 3;           // Total percobaan
-  let lastError: any;
+  const MAX_RETRIES = 3;
+  let lastError: unknown;
 
-const nlu = analyzeNLU(newUserMessage);
-console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
+  const nlu = analyzeNLU(newUserMessage);
+  console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    let apiKey = '';
     try {
-      const apiKey = getNextApiKey();
+      apiKey = getNextApiKey();
       const genAI = new GoogleGenerativeAI(apiKey);
 
       const limitedMessages = messages.slice(-CHAT_HISTORY_LIMIT);
       const history: Content[] = messagesToContents(limitedMessages);
       const newUserContent: Content = { role: 'user', parts: [{ text: newUserMessage }] };
 
-      // ==================== RAG TAHAP 1 (ditambah policy info) ====================
       const productCatalog = await getProductCatalogForAI();
       const systemInstruction = `${SYSTEM_INSTRUCTION_BASE}\n\n${RENTAL_POLICY_INFO}\n\n${productCatalog}`;
 
@@ -152,33 +178,40 @@ console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
         model: 'gemini-2.5-flash',
         systemInstruction,
         tools: [searchProductsTool],
-        toolConfig,
+        toolConfig: toolConfigAuto,
       });
 
       let contents: Content[] = [...history, newUserContent];
       let lastProducts: ProductSearchResult[] | undefined;
       let turns = 0;
+      let usedTool = false;
 
-      // ==================== RAG TAHAP 2 (Function Calling Loop - TIDAK DIUBAH) ====================
       while (turns < MAX_TURNS) {
         turns++;
 
-        const result = await model.generateContent({ contents });
-        console.log(`🔎 [DEBUG] Turn ${turns} - Has functionCall:`, !!getFunctionCallFromResponse(result));
+        // Setelah tool dijalankan, paksa jawaban teks agar tidak loop function-calling.
+        const result = await model.generateContent({
+          contents,
+          tools: [searchProductsTool],
+          toolConfig: usedTool ? toolConfigNone : toolConfigAuto,
+        });
+
         const functionCall = getFunctionCallFromResponse(result);
-        
+        console.log(`🔎 [DEBUG] Turn ${turns} - Has functionCall:`, !!functionCall, '| usedTool:', usedTool);
+
         if (functionCall && (functionCall.name === 'search_products' || functionCall.name === 'get_products')) {
-          const args = functionCall.args as any;
+          const args = functionCall.args as Record<string, unknown>;
           const products = await searchProducts({
-            name: args.name,
-            category: args.category,
-            use_case: args.use_case,
-            price_min: args.price_min,
-            price_max: args.price_max,
-            limit: args.limit || 4,
+            name: typeof args.name === 'string' ? args.name : undefined,
+            category: typeof args.category === 'string' ? args.category : undefined,
+            use_case: typeof args.use_case === 'string' ? args.use_case : undefined,
+            price_min: typeof args.price_min === 'number' ? args.price_min : undefined,
+            price_max: typeof args.price_max === 'number' ? args.price_max : undefined,
+            limit: typeof args.limit === 'number' ? args.limit : 4,
           });
 
           lastProducts = products;
+          usedTool = true;
 
           const modelMessageWithCall: Content = {
             role: 'model',
@@ -210,10 +243,13 @@ console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
         }
 
         if (functionCall && functionCall.name === 'check_stock') {
-          // ... (biarkan sesuai kode lama kamu)
-          const args = functionCall.args as any;
-          const { product, available } = await checkStock(args.product_id, args.product_name);
+          const args = functionCall.args as Record<string, unknown>;
+          const { product, available } = await checkStock(
+            typeof args.product_id === 'string' ? args.product_id : undefined,
+            typeof args.product_name === 'string' ? args.product_name : undefined,
+          );
           if (product) lastProducts = available ? [product] : undefined;
+          usedTool = true;
 
           const modelMessageWithCall: Content = {
             role: 'model',
@@ -228,36 +264,57 @@ console.log(`[NLU] Intent: ${nlu.intent} | Confidence: ${nlu.confidence}`);
           continue;
         }
 
-        // Final Answer
         const text = getTextFromResponse(result);
-        return { message: text, products: lastProducts };
+        if (text.trim()) {
+          return { message: text, products: lastProducts };
+        }
 
-      } // end while
-
-    } catch (err: any) {
-      lastError = err;
-      const msg = err.message || String(err);
-
-      console.log(`❌ Percobaan ${attempt}/${MAX_RETRIES} gagal: ${msg.substring(0, 100)}...`);
-
-      if (msg.includes('429') || msg.includes('quota') || msg.includes('Too Many Requests')) {
-        markKeyError(getNextApiKey(), true);
+        // Tidak ada text dan tidak ada function call yang dikenali
+        throw new Error(`Empty Gemini response at turn ${turns} (no text, no known function call)`);
       }
 
-      // Tunggu sebelum retry (exponential backoff)
+      // Loop habis tanpa jawaban teks — kalau sudah ada produk, kasih jawaban fallback yang berguna
+      if (lastProducts && lastProducts.length > 0) {
+        const lines = lastProducts.slice(0, 3).map((p) => {
+          const name = p.title || p.name;
+          return `- **${name}**: Rp ${p.price.toLocaleString('id-ID')}/hari`;
+        });
+        return {
+          message: `Ini beberapa rekomendasi yang cocok:\n\n${lines.join('\n')}\n\nKlik card di bawah buat lihat detail atau sewa ya 🙂`,
+          products: lastProducts,
+        };
+      }
+
+      throw new Error('Function-calling loop selesai tanpa jawaban teks dari Gemini');
+    } catch (err: unknown) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`❌ Percobaan ${attempt}/${MAX_RETRIES} gagal:`, msg);
+
+      const lower = msg.toLowerCase();
+      if (
+        apiKey &&
+        (lower.includes('429') ||
+          lower.includes('quota') ||
+          lower.includes('too many requests') ||
+          lower.includes('semua_gemini_key_limit'))
+      ) {
+        // Blokir key yang BENAR-BENAR gagal, bukan key berikutnya
+        markKeyError(apiKey, true);
+      }
+
       if (attempt < MAX_RETRIES) {
-        const waitTime = attempt * 2000; // 2s, 4s, 6s
-        console.log(`⏳ Menunggu ${waitTime/1000} detik sebelum retry...`);
-        await new Promise(r => setTimeout(r, waitTime));
+        const waitTime = attempt * 1500;
+        console.log(`⏳ Menunggu ${waitTime / 1000} detik sebelum retry...`);
+        await new Promise((r) => setTimeout(r, waitTime));
         continue;
       }
     }
   }
 
-  // Jika semua retry gagal
   console.error('All retries failed:', lastError);
   return {
-    message: 'Maaf, lagi banyak yang pakai sistemnya nih. Coba tanya lagi dalam 10-20 detik ya 🙂',
-    products: undefined
+    message: buildFallbackUserMessage(lastError),
+    products: undefined,
   };
 }
